@@ -1,0 +1,1251 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Flock Energy — Urja Meter Ops API",
+    "description": "Clean, documented REST API service bridging the Urja Meter Ops distribution metering portal. Provides programmatic access to smart meters, network hierarchy, DT topology, time-series energy consumption, and geospatial queries.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Flock Energy Engineering Take-Home"
+    }
+  },
+  "components": {
+    "schemas": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Service health and cache diagnostics",
+        "tags": [
+          "System"
+        ],
+        "description": "Reports service uptime, upstream portal session status, and cache hydration metrics.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "uptimeSeconds": {
+                      "type": "number"
+                    },
+                    "upstream": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "authenticated": {
+                          "type": "boolean"
+                        },
+                        "sessionExpiresAt": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "cache": {
+                      "type": "object",
+                      "properties": {
+                        "metersCount": {
+                          "type": "integer"
+                        },
+                        "transformersCount": {
+                          "type": "integer"
+                        },
+                        "lastHydratedAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "cacheTtlMs": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters": {
+      "get": {
+        "summary": "List and filter smart meters",
+        "tags": [
+          "Meters"
+        ],
+        "description": "Retrieve a paginated list of smart meters with optional filtering by search text, make, phase, status, or transformer.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "description": "Search term for Meter ID or Serial Number"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "make",
+            "required": false,
+            "description": "Filter by meter manufacturer (e.g. HPL, L&T, Genus, Allied)"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "single",
+                "three"
+              ]
+            },
+            "in": "query",
+            "name": "phase",
+            "required": false,
+            "description": "Filter by phase type"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Installed",
+                "Faulty",
+                "Decommissioned"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "description": "Filter by installation status"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "dtCode",
+            "required": false,
+            "description": "Filter by Distribution Transformer code (e.g. DT-001)"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "description": "Page number"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "meterId": {
+                            "type": "string",
+                            "example": "J100000"
+                          },
+                          "serialNo": {
+                            "type": "string",
+                            "example": "SE33962"
+                          },
+                          "make": {
+                            "type": "string",
+                            "example": "HPL"
+                          },
+                          "phaseType": {
+                            "type": "string",
+                            "example": "single"
+                          },
+                          "installStatus": {
+                            "type": "string",
+                            "example": "Installed"
+                          },
+                          "installType": {
+                            "type": "string",
+                            "example": "Whole Current"
+                          },
+                          "build": {
+                            "type": "string",
+                            "example": "legacy"
+                          },
+                          "dtCode": {
+                            "type": "string",
+                            "example": "DT-001"
+                          },
+                          "geo": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "latitude": {
+                                "type": "number",
+                                "example": 26.938961
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "example": 75.830956
+                              }
+                            }
+                          },
+                          "hierarchy": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "zone": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "circle": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "division": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "subdivision": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "substation": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "feeder": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              },
+                              "dt": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "example": "Jaipur Zone 1"
+                                  },
+                                  "code": {
+                                    "type": "string",
+                                    "nullable": true,
+                                    "example": "Z-01"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters/nearby": {
+      "get": {
+        "summary": "Find meters near a geographic location",
+        "tags": [
+          "Meters",
+          "Spatial Query"
+        ],
+        "description": "Search for meters located within a given radius (in km) from specified latitude and longitude coordinates.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "description": "Latitude of center point"
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "lng",
+            "required": true,
+            "description": "Longitude of center point"
+          },
+          {
+            "schema": {
+              "type": "number",
+              "default": 5
+            },
+            "in": "query",
+            "name": "radiusKm",
+            "required": false,
+            "description": "Search radius in kilometers"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "center": {
+                      "type": "object",
+                      "properties": {
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "radiusKm": {
+                      "type": "number"
+                    },
+                    "totalFound": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "meter": {
+                            "type": "object",
+                            "properties": {
+                              "meterId": {
+                                "type": "string",
+                                "example": "J100000"
+                              },
+                              "serialNo": {
+                                "type": "string",
+                                "example": "SE33962"
+                              },
+                              "make": {
+                                "type": "string",
+                                "example": "HPL"
+                              },
+                              "phaseType": {
+                                "type": "string",
+                                "example": "single"
+                              },
+                              "installStatus": {
+                                "type": "string",
+                                "example": "Installed"
+                              },
+                              "installType": {
+                                "type": "string",
+                                "example": "Whole Current"
+                              },
+                              "build": {
+                                "type": "string",
+                                "example": "legacy"
+                              },
+                              "dtCode": {
+                                "type": "string",
+                                "example": "DT-001"
+                              },
+                              "geo": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "latitude": {
+                                    "type": "number",
+                                    "example": 26.938961
+                                  },
+                                  "longitude": {
+                                    "type": "number",
+                                    "example": 75.830956
+                                  }
+                                }
+                              },
+                              "hierarchy": {
+                                "type": "object",
+                                "nullable": true,
+                                "properties": {
+                                  "zone": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "circle": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "division": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "subdivision": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "substation": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "feeder": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  },
+                                  "dt": {
+                                    "type": "object",
+                                    "nullable": true,
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "example": "Jaipur Zone 1"
+                                      },
+                                      "code": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Z-01"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "distanceKm": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters/{id}": {
+      "get": {
+        "summary": "Get smart meter details by ID",
+        "tags": [
+          "Meters"
+        ],
+        "description": "Fetches detailed information for a specific meter, including nameplate specifications, network hierarchy, and geo coordinates.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Meter ID (e.g. J100000)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meterId": {
+                      "type": "string",
+                      "example": "J100000"
+                    },
+                    "serialNo": {
+                      "type": "string",
+                      "example": "SE33962"
+                    },
+                    "make": {
+                      "type": "string",
+                      "example": "HPL"
+                    },
+                    "phaseType": {
+                      "type": "string",
+                      "example": "single"
+                    },
+                    "installStatus": {
+                      "type": "string",
+                      "example": "Installed"
+                    },
+                    "installType": {
+                      "type": "string",
+                      "example": "Whole Current"
+                    },
+                    "build": {
+                      "type": "string",
+                      "example": "legacy"
+                    },
+                    "dtCode": {
+                      "type": "string",
+                      "example": "DT-001"
+                    },
+                    "geo": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "latitude": {
+                          "type": "number",
+                          "example": 26.938961
+                        },
+                        "longitude": {
+                          "type": "number",
+                          "example": 75.830956
+                        }
+                      }
+                    },
+                    "hierarchy": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "zone": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "circle": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "division": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "subdivision": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "substation": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "feeder": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        },
+                        "dt": {
+                          "type": "object",
+                          "nullable": true,
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Jaipur Zone 1"
+                            },
+                            "code": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "Z-01"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Not Found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Meter J999999 not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meters/{id}/readings": {
+      "get": {
+        "summary": "Get historical consumption and electrical readings",
+        "tags": [
+          "Meters",
+          "Readings"
+        ],
+        "description": "Fetches normalized time-series readings (kWh, kVAh, voltage) for a specific meter, parsed into clean numbers and ISO timestamps.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 500
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Maximum readings to return"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "Meter ID (e.g. J100000)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "meterId": {
+                      "type": "string"
+                    },
+                    "readingCount": {
+                      "type": "integer"
+                    },
+                    "readings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "example": "23/06/2026 23:30"
+                          },
+                          "isoTimestamp": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "2026-06-23T23:30:00Z"
+                          },
+                          "kwh": {
+                            "type": "number",
+                            "example": 48438.74
+                          },
+                          "kvah": {
+                            "type": "number",
+                            "example": 52313.84
+                          },
+                          "voltR": {
+                            "type": "number",
+                            "example": 226
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Not Found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Meter J999999 not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transformers": {
+      "get": {
+        "summary": "List distribution transformers",
+        "tags": [
+          "Transformers"
+        ],
+        "description": "Retrieve a list of distribution transformers with connected meter counts and feeder information.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "feederCode",
+            "required": false,
+            "description": "Filter by feeder code (e.g. F-001)"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            },
+            "in": "query",
+            "name": "page",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "feederCode": {
+                            "type": "string"
+                          },
+                          "capacityKva": {
+                            "type": "number"
+                          },
+                          "connectedMetersCount": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transformers/{code}": {
+      "get": {
+        "summary": "Get transformer details and connected meters",
+        "tags": [
+          "Transformers"
+        ],
+        "description": "Returns specifications of a single distribution transformer along with all smart meters connected to it.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "description": "Transformer code (e.g. DT-001)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "feederCode": {
+                      "type": "string"
+                    },
+                    "capacityKva": {
+                      "type": "number"
+                    },
+                    "connectedMetersCount": {
+                      "type": "integer"
+                    },
+                    "meters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "meterId": {
+                            "type": "string"
+                          },
+                          "serialNo": {
+                            "type": "string"
+                          },
+                          "phaseType": {
+                            "type": "string"
+                          },
+                          "installStatus": {
+                            "type": "string"
+                          },
+                          "make": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statusCode": {
+                      "type": "number",
+                      "example": 404
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Not Found"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Meter J999999 not found"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/hierarchy": {
+      "get": {
+        "summary": "Get reconstructed electrical network hierarchy",
+        "tags": [
+          "Network Hierarchy"
+        ],
+        "description": "Reconstructs the hierarchical structure of the electricity distribution grid: Zones -> Circles -> Divisions -> Subdivisions -> Substations -> Feeders -> DTs -> Meters.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "totalMeters": {
+                          "type": "integer"
+                        },
+                        "totalTransformers": {
+                          "type": "integer"
+                        },
+                        "lastHydratedAt": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "tree": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/export": {
+      "get": {
+        "summary": "Export complete meter dataset with HMAC authorization",
+        "tags": [
+          "Bulk Export"
+        ],
+        "description": "Fetches the complete dataset using the upstream HMAC-SHA256 signed /portal/export route. Ideal for data pipelines and analytics integrations.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "in": "query",
+            "name": "fresh",
+            "required": false,
+            "description": "Force a live query to the upstream portal instead of returning cached export"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "example": "upstream-hmac-export"
+                    },
+                    "exportedAt": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Meters",
+      "description": "Smart meter listings, details, and search"
+    },
+    {
+      "name": "Readings",
+      "description": "Normalized time-series energy consumption readings"
+    },
+    {
+      "name": "Spatial Query",
+      "description": "Geographic proximity search for meters"
+    },
+    {
+      "name": "Transformers",
+      "description": "Distribution Transformers (DTs) and network assets"
+    },
+    {
+      "name": "Network Hierarchy",
+      "description": "Electrical grid topology: Zone -> Feeder -> DT -> Meter"
+    },
+    {
+      "name": "Bulk Export",
+      "description": "HMAC-signed full dataset export"
+    },
+    {
+      "name": "System",
+      "description": "Health check and operational diagnostics"
+    }
+  ]
+}
