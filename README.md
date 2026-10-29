@@ -1,4 +1,4 @@
-# Flock Energy — Urja Meter Ops API Service
+# Flock Energy Urja Meter Ops API Service
 
 A clean, modern, well-documented REST API service bridging the legacy **Urja Meter Ops** utility portal (`https://urja-ops.flockenergy.tech`).
 
